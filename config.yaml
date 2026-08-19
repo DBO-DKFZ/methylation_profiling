@@ -1,0 +1,112 @@
+paths:
+  # Base directories (output roots; per-analysis subdirs are derived in code)
+  results: results
+  plots: plots
+
+  # Input directories
+  epic_v1_dir: data/epic_v1
+  epic_v2_dir: data/epic_v2
+  idat_v1_dir: /path/to/EPICv1
+  idat_v2_dir: /path/to/EPICv2
+
+  # Input files
+  manifest_v1: data/EPIC.hg38.manifest.tsv
+  manifest_v2: data/EPICv2.hg38.manifest.tsv
+  meta_data: data/meta.csv
+  hospital_mapping: data/hospital_mapping.json
+  methylation_samples: data/methylation_samples_total.csv
+  methylation_samples_cleaned: data/methylation_samples_cleaned.csv
+  epicv1_detectionrate: data/epicv1_detectionrate.csv
+  epicv2_detectionrate: data/epicv2_detectionrate.csv
+
+  # Intermediate/combined outputs
+  betas_v1: data/betas/betas_v1.csv
+  betas_v2: data/betas/betas_v2.csv
+  betas_combined: data/betas/betas_combined.csv
+  betas_train: data/betas/betas_train.csv
+  betas_test: data/betas/betas_test.csv
+  betas_imputed_train: data/betas/betas_imputed_train.csv
+  betas_imputed_test: data/betas/betas_imputed_test.csv
+
+  # CpG curation
+  chrom_hmm_segments: data/curated_cpgs/E059_15_coreMarks_segments_hg38lift.bed
+  chrom_hmm: data/curated_cpgs/ChromHMM_V1_E059_15state_hg38.csv
+  chrom_hmm_v2: data/curated_cpgs/ChromHMM_V2_E059_15state_hg38.csv
+  panel_promoters: data/curated_cpgs/panel_promoters.csv
+  # genome_coordinates <-> EPIC probe ID bridge
+  cpg_position_mapping: data/genome_position_cpg_mapping.csv
+
+  # CpG selection to interpret per task
+  selected_cpgs_classification: results/classifier/models/selected_cpgs__classification__cpg__boruta__none__svm.csv
+  selected_cpgs_ordinal: results/classifier/models/selected_cpgs__ordinal__cpg__boruta__none__ogboost.csv
+
+  # Correlation analyses (consumed cross-script -> explicit file keys)
+  horvath_ages_v1: results/horvath_clock/horvath_ages_v1.csv
+  horvath_ages_v2: results/horvath_clock/horvath_ages_v2.csv
+  # One EAA file per task (eaa_base shared, eaa_oof follows each task's folds); written by R/analysis/horvath_eaa.R.
+  horvath_eaa_classification: results/horvath_clock/horvath_eaa__classification.csv
+  horvath_eaa_ordinal: results/horvath_clock/horvath_eaa__ordinal.csv
+  episcore_ref_broad: data/episcore_ref_broad.rds
+  episcore_ref_immune: data/episcore_ref_immune.rds
+  deconv_episcore: results/deconvolution/episcore.csv
+
+test_clinic: hospital8
+random_state: 42
+workers: 4
+
+# Thresholds shared by a compute script and the report that plots its output
+thresholds:
+  dmr_fdr: 0.05    # region-level HMFDR: significant DMR
+  dmr_delta: 0.10  # |mean Δβ|: high-effect DMR
+  go_fdr: 0.05     # FDR for a reported GO term
+
+# Figure style shared by the Python (python/visualization.py) and R (R/lib/plot_utils.R) plotting code. `panel_mm`
+# names the column width a figure is destined for; drawing at that width means its text lands at `base_size` pt on the
+# page whichever language produced it, so assembled panels need no rescaling.
+figure:
+  font_family: [Nimbus Sans, Arial, DejaVu Sans]
+  base_size: 7       # pt: tick labels, axis titles, legends, panel titles
+  small_size: 5      # pt: dense in-plot annotations (guideline minimum - do not go below)
+  line_width: 0.5
+  panel_label_size: 8  # pt: the bold lower-case a/b/c stamped when panels are assembled
+  panel_mm:
+    full: 180        # double-column figure, or one panel spanning a full row
+    two_thirds: 118
+    half: 88         # single-column figure, or one cell of a 2-column panel grid
+    third: 56        # one cell of a 3-column panel grid
+  max_height_mm: 220  # a full-page figure; assembled panels must not exceed this
+
+colors:
+  diagnosis:
+    IM: royalblue
+    NIM: darkturquoise
+    NV: forestgreen
+  # Therapeutic groups (codes 0-5). Group 0 inherits the NIM diagnosis color in config.py
+  therapeutic:
+    1: "#DCEAF4"
+    2: "#AFCDE3"
+    3: "#78A9CC"
+    4: "#3F7FB3"
+    5: "#1F4E79"
+  hospital:
+    hospital1: "#8DD3C7"
+    hospital2: "#BEBADA"
+    hospital3: "#FB8072"
+    hospital4: "#80B1D3"
+    hospital5: "#FDB462"
+    hospital6: "#B3DE69"
+    hospital7: "#FCCDE5"
+    hospital8: "#BC80BD"
+  array:
+    EPICv1: "#BFB5DC"
+    EPICv2: "#5B4B8A"
+  cell_type:
+    Melanocyte: "#66C5CC"
+    Keratinocyte: "#87C55F"
+    Stromal: "#9EB9F3"
+    Endothelial: "#8BE0A4"
+    Th: "#F6CF71"
+    T_reg: "#F89C74"
+    T_CD8: "#FE88B1"
+    Other_Lymphoid: "#DCB0F2"
+    Myeloid: "#B3B3B3"

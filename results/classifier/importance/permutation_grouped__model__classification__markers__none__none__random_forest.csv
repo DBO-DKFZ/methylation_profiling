@@ -1,0 +1,4 @@
+group,n_features,features,importance_mean,importance_std,baseline
+CNV burden,2,fga;total_burden,0.20082534277191869,0.027105027611349728,0.8433284641004631
+EpiScore (cell composition),9,Melanocyte;Keratinocyte;Stromal;Endothelial;Th;T_reg;T_CD8;Other_Lymphoid;Myeloid,0.12356759871825523,0.02856242731863072,0.8433284641004631
+Horvath EAA,1,horvath_eaa,0.01361144428360994,0.007635561946754889,0.8433284641004631

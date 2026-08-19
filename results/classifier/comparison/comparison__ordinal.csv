@@ -1,0 +1,4 @@
+metric,test,model_a,model_b,value_a,value_b,delta,ci_low,ci_high,p_value,p_value_holm,significant,better,n
+mae_macro,paired cluster bootstrap,ordinal__cpg__boruta__none__ogboost,ordinal__markers__none__none__ogboost,0.6702433166248957,0.6272713032581454,0.04297201336675027,-0.14071759259259253,0.2243745392893999,0.654,0.654,False,ns,58
+mae_macro,paired cluster bootstrap,ordinal__cpg__boruta__none__ogboost,ordinal__stacked__none__none__mord_ridge,0.6702433166248957,0.7575971177944862,-0.08735380116959057,-0.20511326075399314,0.03705808080808084,0.158,0.276,False,ns,58
+mae_macro,paired cluster bootstrap,ordinal__markers__none__none__ogboost,ordinal__stacked__none__none__mord_ridge,0.6272713032581454,0.7575971177944862,-0.13032581453634084,-0.3026230158730159,0.045745431286549704,0.138,0.276,False,ns,58

@@ -1,0 +1,38 @@
+metric,value,percent
+n_lesions,1001.0,
+n_hospitals,8.0,
+location_Face/scalp/neck,142.0,14.19
+location_Palms/soles,20.0,2.0
+location_Upper extremities,125.0,12.49
+location_Lower extremities,190.0,18.98
+location_Back,313.0,31.27
+location_Abdomen,103.0,10.29
+location_Chest,73.0,7.29
+location_Buttock,23.0,2.3
+location_Genitalia,9.0,0.9
+location_Unknown,3.0,0.3
+diagnosis_IM,349.0,34.87
+diagnosis_NIM,117.0,11.69
+diagnosis_NV,535.0,53.45
+n_melanoma,466.0,
+ajcc_IA,154.0,33.05
+ajcc_0,117.0,25.11
+ajcc_IB,78.0,16.74
+ajcc_unknown,28.0,6.01
+ajcc_IIB,23.0,4.94
+ajcc_IIA,21.0,4.51
+ajcc_IIIC,15.0,3.22
+ajcc_IIC,13.0,2.79
+ajcc_not applicable,6.0,1.29
+ajcc_IIIB,6.0,1.29
+ajcc_IIIA,4.0,0.86
+ajcc_IV,1.0,0.21
+breslow_mean,1.6187335092348285,
+breslow_median,0.7,
+breslow_std,2.4025983465902456,
+breslow_q1,0.4,
+breslow_q3,1.8,
+breslow_iqr,1.4,
+breslow_min,0.0,
+breslow_max,20.0,
+breslow_n_missing,87.0,

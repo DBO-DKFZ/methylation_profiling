@@ -1,0 +1,46 @@
+GO_ID,ONTOLOGY,TERM,N,DE,P.DE,FDR,SigGenesInSet
+GO:0043650,BP,dicarboxylic acid biosynthetic process,13,2,0.000542933684204411,1,"HAAO,MTHFD1L"
+GO:0002430,BP,complement receptor mediated signaling pathway,16,2,0.000809967339037563,1,"FPR2,FPR3"
+GO:0036150,BP,phosphatidylserine acyl-chain remodeling,9,2,0.00082965229937707,1,"OSBPL5,OSBPL10"
+GO:0071298,BP,cellular response to L-ascorbic acid,1,1,0.00149235591207324,1,LEP
+GO:1904651,BP,positive regulation of fat cell apoptotic process,1,1,0.00149235591207324,1,LEP
+GO:1990051,BP,activation of protein kinase C activity,1,1,0.00149235591207324,1,LEP
+GO:2000486,BP,negative regulation of glutamine transport,1,1,0.00149235591207324,1,LEP
+GO:2000485,BP,regulation of glutamine transport,2,1,0.00285425549895948,1,LEP
+GO:0034442,BP,regulation of lipoprotein oxidation,2,1,0.00301162654603713,1,LEP
+GO:0060587,BP,regulation of lipoprotein lipid oxidation,2,1,0.00301162654603713,1,LEP
+GO:1904606,BP,fat cell apoptotic process,2,1,0.00304608235361868,1,LEP
+GO:1904649,BP,regulation of fat cell apoptotic process,2,1,0.00304608235361868,1,LEP
+GO:0021675,BP,nerve development,58,3,0.00336618131680247,1,"SLC24A4,SULF1,NRP2"
+GO:0042983,BP,amyloid precursor protein biosynthetic process,24,2,0.00372002224932196,1,"AGO2,NECAB1"
+GO:0042984,BP,regulation of amyloid precursor protein biosynthetic process,24,2,0.00372002224932196,1,"AGO2,NECAB1"
+GO:0005795,CC,Golgi stack,129,4,0.00162904856045333,1,"SULF1,GALNT2,GALNT3,MBTPS1"
+GO:0098791,CC,Golgi apparatus subcompartment,373,6,0.00422277852303301,1,"OSBPL10,SULF1,GALNT2,GALNT3,RGS20,MBTPS1"
+GO:0070820,CC,tertiary granule,157,3,0.011942157676754,1,"FPR2,TARM1,PTPRN2"
+GO:0101003,CC,ficolin-1-rich granule membrane,58,2,0.0161636604710725,1,"FPR2,PTPRN2"
+GO:0005609,CC,laminin-221 trimer,3,1,0.0187683962351334,1,LAMA2
+GO:0120199,CC,cone photoreceptor outer segment,5,1,0.0197302387246082,1,SLC24A4
+GO:0070821,CC,tertiary granule membrane,68,2,0.0200862155718157,1,"FPR2,TARM1"
+GO:0035867,CC,alphav-beta3 integrin-IGF-1-IGF1R complex,4,1,0.0217708608474433,1,IGF1R
+GO:7770015,CC,intermembrane lipid transporter complex,3,1,0.0221150260711998,1,OSBPL10
+GO:0032593,CC,insulin-responsive compartment,8,1,0.0230424594355682,1,MYO5A
+GO:0160258,CC,endoplasmic reticulum-trans-Golgi network membrane contact site,5,1,0.0249017680981438,1,OSBPL10
+GO:0043261,CC,laminin-213 trimer,3,1,0.0259455732095178,1,LAMA2
+GO:0005607,CC,laminin-211 trimer,4,1,0.0293472881110536,1,LAMA2
+GO:0044232,CC,organelle membrane contact site,65,2,0.0293715006209603,1,"OSBPL5,OSBPL10"
+GO:0070578,CC,RISC-loading complex,8,1,0.0300838271389353,1,AGO2
+GO:0004982,MF,N-formyl peptide receptor activity,4,2,1.31457094606748e-05,0.27817635789734,"FPR2,FPR3"
+GO:0004875,MF,complement receptor activity,11,2,0.000218836871964726,1,"FPR2,FPR3"
+GO:0140343,MF,phosphatidylserine transfer activity,6,2,0.000870527035470567,1,"OSBPL5,OSBPL10"
+GO:0160270,MF,phosphatidylserine-phosphatidylinositol-4-phosphate exchange activity,6,2,0.000870527035470567,1,"OSBPL5,OSBPL10"
+GO:7770011,MF,lipid exchange activity,7,2,0.000944764488516458,1,"OSBPL5,OSBPL10"
+GO:0000334,MF,"3-hydroxyanthranilate 3,4-dioxygenase activity",1,1,0.00119847269658241,1,HAAO
+GO:0001786,MF,phosphatidylserine binding,58,3,0.0018165455599619,1,"OSBPL5,OSBPL10,CAVIN2"
+GO:0072341,MF,modified amino acid binding,85,3,0.00380590881179179,1,"OSBPL5,OSBPL10,CAVIN2"
+GO:0102772,MF,sphingolipid C4-monooxygenase activity,1,1,0.00524011065343201,1,DEGS2
+GO:0051427,MF,hormone receptor binding,32,2,0.00542388182894606,1,"LEP,SOCS2"
+GO:0005124,MF,scavenger receptor binding,4,1,0.00593069195736598,1,FPR2
+GO:0008526,MF,phosphatidylinositol transfer activity,18,2,0.00607806327290135,1,"OSBPL5,OSBPL10"
+GO:0042284,MF,sphingolipid delta-4 desaturase activity,2,1,0.0064660370979414,1,DEGS2
+GO:0004653,MF,polypeptide N-acetylgalactosaminyltransferase activity,19,2,0.00682911044939024,1,"GALNT2,GALNT3"
+GO:0005001,MF,transmembrane receptor protein tyrosine phosphatase activity,17,2,0.00863038150020925,1,"PTPRG,PTPRN2"

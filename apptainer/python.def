@@ -1,0 +1,56 @@
+Bootstrap: docker
+From: ubuntu:24.04
+
+# Python ML stack, built reproducibly from python/uv.lock with uv.
+# uv installs the locked Python (3.14) and every pinned dependency into a venv
+# baked into the image. torch resolves to the CUDA build on Linux (multi-GB,
+# GPU-capable; still runs CPU-only). For a CPU-only image, add a [tool.uv]
+# pytorch CPU index to pyproject.toml and re-lock before building.
+
+%labels
+    Maintainer lukas.heinlein@dkfz.de
+    Description Python 3.14 ML stack (torch, xgboost, scikit-learn, statsmodels, ...) from uv.lock
+
+%files
+    python/pyproject.toml /opt/epigenetic/pyproject.toml
+    python/uv.lock        /opt/epigenetic/uv.lock
+
+%environment
+    export UV_PROJECT_ENVIRONMENT=/opt/epigenetic/.venv
+    export PATH=/opt/epigenetic/.venv/bin:$PATH
+    export PYTHONUNBUFFERED=1
+
+%post
+    set -eu
+    export DEBIAN_FRONTEND=noninteractive
+    apt-get update
+    apt-get install -y --no-install-recommends ca-certificates curl git
+    rm -rf /var/lib/apt/lists/*
+
+    # Install uv.
+    curl -LsSf https://astral.sh/uv/install.sh | env UV_INSTALL_DIR=/usr/local/bin sh
+
+    cd /opt/epigenetic
+    export UV_PROJECT_ENVIRONMENT=/opt/epigenetic/.venv
+    export UV_PYTHON_INSTALL_DIR=/opt/uv-python
+    export UV_LINK_MODE=copy
+    export UV_NO_CACHE=1
+
+    # Reproducible install from the lockfile. --no-install-project skips building
+    # the (build-backendless) repo itself; only the locked deps are installed.
+    uv sync --frozen --no-dev --no-install-project
+
+    # Smoke test.
+    /opt/epigenetic/.venv/bin/python -c "import torch, xgboost, sklearn, statsmodels, pandas, numpy; print('python', __import__('sys').version)"
+
+%runscript
+    exec python "$@"
+
+%help
+    Python 3.14 ML image.
+
+    Run a module/script (bind your repo and cd into it, see apptainer/README.md):
+        apptainer exec python.sif python python/preprocessing.py
+
+    For GPU jobs, request a GPU from LSF and add --nv:
+        apptainer exec --nv python.sif python ...

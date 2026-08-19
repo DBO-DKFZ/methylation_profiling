@@ -1,0 +1,57 @@
+Bootstrap: docker
+From: bioconductor/bioconductor_docker:RELEASE_3_23
+
+# R/Bioconductor preprocessing stack.
+# Base provides R 4.6.x, BiocManager pinned to Bioconductor 3.23, and all the
+# system libraries the Bioc methylation ecosystem needs (libxml2, libcurl, ...).
+# If the RELEASE_3_23 tag is unavailable, bump it to the release that ships your
+# R version (3.23 -> R 4.6, 3.22 -> R 4.5).
+
+%labels
+    Maintainer lukas.heinlein@dkfz.de
+    Description R/Bioconductor preprocessing (sesame, methyLImp2, DMRcate, conumee2, EpiSCORE, methylclock, missMethyl, ChIPseeker)
+
+%environment
+    # Annotation data (sesameData/ExperimentHub/AnnotationHub) is cached under
+    # XDG_CACHE_HOME. On the cluster $HOME is bound into the container, so a
+    # one-time cache populated in the user's home persists across jobs.
+    export XDG_CACHE_HOME=${XDG_CACHE_HOME:-$HOME/.cache}
+    export R_USER_CACHE_DIR=${R_USER_CACHE_DIR:-$HOME/.cache}
+
+%post
+    set -eu
+
+    export NOT_CRAN=true
+    export MAKEFLAGS="-j$(nproc)"
+
+    # CRAN packages.
+    Rscript -e 'install.packages(c("data.table","ggplot2","ggpubr","reshape2","rstatix","yaml","plotly","remotes","devtools","pheatmap"), repos="https://cloud.r-project.org", Ncpus=parallel::detectCores())'
+
+    # Bioconductor packages (version coherence handled by the pinned BiocManager).
+    # missMethyl/ChIPseeker + the hg38 TxDb and EPIC annotation back the DMR and GO enrichment analyses.
+    Rscript -e 'BiocManager::install(c("BiocParallel","sesame","sesameData","methyLImp2","DMRcate","methylclock","missMethyl","ChIPseeker","rtracklayer","TxDb.Hsapiens.UCSC.hg38.knownGene","org.Hs.eg.db","IlluminaHumanMethylationEPICanno.ilm10b4.hg19"), update=FALSE, ask=FALSE)'
+
+    # GitHub-only packages, installed as their docs instruct. conumee2's R package
+    # lives in a subdirectory of its repo. BiocManager is configured in the base
+    # image, so install_github resolves their Bioconductor dependencies.
+    Rscript -e 'devtools::install_github("hovestadtlab/conumee2", subdir = "conumee2", upgrade="never")'
+    # presto (GitHub-only) is a hard dependency of EpiSCORE; install it first.
+    Rscript -e 'devtools::install_github("immunogenomics/presto", upgrade="never")'
+    Rscript -e 'devtools::install_github("aet21/EpiSCORE", upgrade="never")'
+
+    # Fail the build loudly if any expected package is missing.
+    Rscript -e 'pkgs <- c("data.table","methyLImp2","BiocParallel","sesame","DMRcate","conumee2","EpiSCORE","methylclock","ggplot2","ggpubr","reshape2","rstatix","yaml","pheatmap","missMethyl","ChIPseeker","rtracklayer","TxDb.Hsapiens.UCSC.hg38.knownGene","org.Hs.eg.db","IlluminaHumanMethylationEPICanno.ilm10b4.hg19"); miss <- pkgs[!pkgs %in% rownames(installed.packages())]; if (length(miss)) stop("Missing: ", paste(miss, collapse=", "))'
+
+%runscript
+    exec Rscript "$@"
+
+%help
+    R/Bioconductor preprocessing image.
+
+    Run a script:
+        apptainer exec r.sif Rscript preprocessing/impute_betas.R
+
+    The imputation job (methyLImp2) works fully offline. Steps that use
+    sesame/openSesame download annotation data on first use into $HOME/.cache;
+    pre-populate it once with network access:
+        apptainer exec r.sif Rscript -e 'sesameData::sesameDataCacheAll()'

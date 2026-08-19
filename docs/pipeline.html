@@ -1,0 +1,773 @@
+<title>Methylation pipeline — interactive map</title>
+<style>
+  :root {
+    --bg: #F4F6F9;
+    --surface: #FFFFFF;
+    --ink: #17222E;
+    --muted: #5E6E80;
+    --faint: #8A99A9;
+    --line: #DCE3EC;
+    --edge: #AEBBCB;
+    --edge-on: #35475C;
+
+    --r:#1F6FD6;  --r-bg:#EAF2FC; --r-bd:#B7D3F4; --r-tx:#134A97;
+    --py:#0E9E6E; --py-bg:#E5F5EE; --py-bd:#A6DCC6; --py-tx:#0A6A4A;
+    --dt:#B87611; --dt-bg:#FBF3DD; --dt-bd:#EAD299; --dt-tx:#7A4E0B;
+    --tg:#C43B6E; --tg-bg:#FBE8F0; --tg-bd:#F0B8CF; --tg-tx:#8C2450;
+    --ts:#D9741E; --ts-bg:#FBEEDD; --ts-bd:#F0CB9B; --ts-tx:#8A4610;
+    --in:#64748B; --in-bg:#EEF1F5; --in-bd:#C7D0DB; --in-tx:#3F4C5C;
+
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sp: 1rem;
+    --radius: 11px;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  .wrap {
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: clamp(1.4rem, 3vw, 3rem) clamp(1rem, 3vw, 2.2rem) 3rem;
+  }
+
+  /* ---------- header ---------- */
+  /* same measure as the diagram column of .grid (full width minus aside + gap) */
+  header { max-width: calc(100% - 340px - 1.6rem); }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--py-tx);
+    margin: 0 0 .7rem;
+  }
+  h1 {
+    font-size: clamp(1.9rem, 4vw, 2.9rem);
+    line-height: 1.05;
+    letter-spacing: -.02em;
+    margin: 0 0 .8rem;
+    text-wrap: balance;
+  }
+  .lede { font-size: 1.05rem; color: var(--muted); margin: 0; }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: .5rem;
+    margin-top: 1.4rem;
+  }
+  .chip {
+    font-family: var(--mono); font-size: .74rem;
+    padding: .34rem .66rem; border-radius: 999px;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--muted); white-space: nowrap;
+  }
+  .chip b { color: var(--ink); font-weight: 600; }
+
+  /* ---------- legend / filter ---------- */
+  .legend {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .5rem;
+    margin: 2rem 0 .4rem;
+    padding-bottom: 1.1rem;
+    border-bottom: 1px solid var(--line);
+  }
+  .legend-label {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .14em;
+    text-transform: uppercase; color: var(--faint); margin-right: .3rem;
+  }
+  .filter {
+    display: inline-flex; align-items: center; gap: .45rem;
+    font-size: .8rem; font-weight: 500;
+    padding: .34rem .7rem .34rem .6rem;
+    border-radius: 999px; cursor: pointer;
+    background: var(--surface); border: 1px solid var(--line);
+    color: var(--muted); transition: opacity .15s, border-color .15s, background .15s;
+  }
+  .filter:hover { border-color: var(--faint); }
+  .filter .swatch {
+    width: .68rem; height: .68rem; border-radius: 3px; border: 1.5px solid;
+  }
+  .filter[aria-pressed="true"] { color: var(--ink); background: #fff; border-color: currentColor; }
+  .filter.off { opacity: .4; }
+  .reset {
+    margin-left: auto; font-family: var(--mono); font-size: .74rem;
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: .3rem .4rem; text-decoration: underline; text-underline-offset: 3px;
+  }
+  .reset:hover { color: var(--ink); }
+  .reset[hidden] { display: none; }
+
+  /* ---------- main grid ---------- */
+  .grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 1.6rem;
+    align-items: start;
+    margin-top: 1.4rem;
+  }
+
+  /* ---------- diagram ---------- */
+  .diagram-scroll { overflow-x: auto; }
+  .diagram {
+    position: relative;
+    min-width: 560px;
+    padding: .5rem 0;
+  }
+  .edges {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0;
+    overflow: visible;
+  }
+  .lanes { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 50px; }
+  .lane { position: relative; }
+  .lane-name {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--faint);
+    margin: 0 0 .55rem .1rem;
+  }
+  .lane-row {
+    display: flex; flex-wrap: wrap; gap: 16px;
+    justify-content: center; align-items: stretch;
+  }
+
+  .node {
+    position: relative;
+    display: flex; flex-direction: column; gap: .18rem;
+    text-align: left;
+    width: 176px; padding: .6rem .72rem .65rem;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: var(--radius);
+    cursor: pointer; font-family: var(--sans);
+    color: var(--ink);
+    transition: opacity .16s, transform .16s, box-shadow .16s;
+    box-shadow: 0 1px 2px rgba(23,34,46,.04);
+  }
+  .node:hover { transform: translateY(-1px); }
+  .node:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+  .node-tag {
+    font-family: var(--mono); font-size: .64rem; letter-spacing: .04em;
+    text-transform: uppercase; font-weight: 600;
+  }
+  .node-label { font-size: .92rem; font-weight: 600; letter-spacing: -.01em; line-height: 1.2; }
+  .node-sub { font-size: .74rem; color: var(--muted); line-height: 1.25; }
+
+  .node[data-kind="input"]{ background:var(--in-bg); border-color:var(--in-bd); --ring:var(--in); }
+  .node[data-kind="input"] .node-tag{ color:var(--in-tx); }
+  .node[data-kind="r"]{ background:var(--r-bg); border-color:var(--r-bd); --ring:var(--r); }
+  .node[data-kind="r"] .node-tag{ color:var(--r-tx); }
+  .node[data-kind="py"]{ background:var(--py-bg); border-color:var(--py-bd); --ring:var(--py); }
+  .node[data-kind="py"] .node-tag{ color:var(--py-tx); }
+  .node[data-kind="data"]{ background:var(--dt-bg); border-color:var(--dt-bd); --ring:var(--dt); }
+  .node[data-kind="data"] .node-tag{ color:var(--dt-tx); }
+  .node[data-kind="target"]{ background:var(--tg-bg); border-color:var(--tg-bd); --ring:var(--tg); }
+  .node[data-kind="target"] .node-tag{ color:var(--tg-tx); }
+  .node[data-kind="test"]{ background:var(--ts-bg); border-color:var(--ts-bd); --ring:var(--ts); }
+  .node[data-kind="test"] .node-tag{ color:var(--ts-tx); }
+
+  /* data artefacts get a stacked-sheet cue */
+  .node[data-kind="data"]::before {
+    content: ""; position: absolute; inset: -5px -5px auto -5px; height: 8px;
+    border: 1.5px solid var(--dt-bd); border-bottom: none;
+    border-radius: var(--radius) var(--radius) 0 0;
+    background: var(--dt-bg); opacity: .6; z-index: -1;
+  }
+
+  .node.faded { opacity: .26; }
+  .node.hidden-kind { opacity: .12; }
+  .node.active {
+    opacity: 1 !important;
+    box-shadow: 0 8px 22px rgba(23,34,46,.14), 0 0 0 2px var(--ring);
+  }
+
+  /* svg edges */
+  .edge { fill: none; stroke: var(--edge); stroke-width: 1.6; transition: stroke .16s, opacity .16s, stroke-width .16s; }
+  .edge.dashed { stroke-dasharray: 5 4; }
+  .edge.edge-off { opacity: .1; }
+  .edge.edge-on { stroke: var(--edge-on); stroke-width: 2.3; opacity: 1; }
+  .edge-label {
+    font-family: var(--mono); font-size: 9.5px; fill: var(--muted);
+    paint-order: stroke; stroke: var(--bg); stroke-width: 4px; stroke-linejoin: round;
+    opacity: 0; transition: opacity .16s;
+  }
+  .edge-label.show { opacity: 1; fill: var(--edge-on); }
+
+  /* ---------- detail panel ---------- */
+  .side { position: sticky; top: 1.2rem; display: flex; flex-direction: column; gap: 1.1rem; }
+  .panel {
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; padding: 1.15rem 1.2rem 1.3rem;
+    box-shadow: 0 1px 3px rgba(23,34,46,.05);
+  }
+  .panel .kicker {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .13em;
+    text-transform: uppercase; color: var(--faint); margin: 0 0 .6rem;
+  }
+  .p-badge {
+    display: inline-flex; align-items: center; gap: .4rem;
+    font-family: var(--mono); font-size: .68rem; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+    padding: .24rem .55rem; border-radius: 999px; border: 1px solid;
+    margin-bottom: .7rem;
+  }
+  .p-title { font-size: 1.2rem; font-weight: 700; letter-spacing: -.01em; margin: 0 0 .5rem; text-wrap: balance; }
+  .p-desc { font-size: .9rem; color: var(--muted); margin: 0 0 1rem; }
+  .p-block { margin-top: .95rem; }
+  .p-block h4 {
+    font-family: var(--mono); font-size: .66rem; letter-spacing: .1em;
+    text-transform: uppercase; color: var(--faint);
+    margin: 0 0 .4rem; font-weight: 600;
+  }
+  .p-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .3rem; }
+  .p-list li {
+    font-family: var(--mono); font-size: .76rem; color: var(--ink);
+    background: var(--bg); border: 1px solid var(--line);
+    border-radius: 6px; padding: .3rem .5rem; word-break: break-word; line-height: 1.35;
+  }
+  .p-list.reads li { border-left: 3px solid var(--r); }
+  .p-list.writes li { border-left: 3px solid var(--dt); }
+  .p-list.cmd li { border-left: 3px solid var(--py); background:#0f1a24; color:#cfe6dd; }
+  .p-empty { font-size: .84rem; color: var(--faint); font-style: italic; }
+
+  /* run order */
+  .runorder h3 {
+    font-family: var(--mono); font-size: .7rem; letter-spacing: .12em;
+    text-transform: uppercase; color: var(--faint); margin: 0 0 .7rem;
+  }
+  ol.steps { list-style: none; counter-reset: s; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .18rem; }
+  ol.steps li {
+    counter-increment: s;
+    display: grid; grid-template-columns: 1.5rem 1fr; align-items: baseline; gap: .5rem;
+    padding: .34rem .45rem; border-radius: 7px; cursor: default;
+    transition: background .14s;
+  }
+  ol.steps li::before {
+    content: counter(s); font-family: var(--mono); font-size: .72rem;
+    color: var(--faint); font-weight: 600; text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+  ol.steps li:hover { background: var(--bg); }
+  ol.steps li:hover::before { color: var(--ink); }
+  .step-cmd { font-family: var(--mono); font-size: .76rem; color: var(--ink); line-height: 1.3; overflow-wrap: anywhere; }
+  .step-note { display: block; font-family: var(--sans); font-size: .72rem; color: var(--muted); }
+
+  @media (max-width: 900px) {
+    .grid { grid-template-columns: 1fr; }
+    .side { position: static; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+    .node:hover { transform: none; }
+  }
+</style>
+
+<div class="wrap">
+  <header>
+    <p class="eyebrow">DNA-methylation · melanoma profiling</p>
+    <h1>The classification pipeline, end to end</h1>
+    <p class="lede">From raw Illumina EPIC IDATs to a three-class diagnosis and an ordinal therapeutic-group prediction — an R&nbsp;+&nbsp;Python pipeline whose two halves never talk at runtime, only through files on disk. Hover any step to trace its flow; click for the scripts it runs and the files it reads and writes.</p>
+    <div class="chips">
+      <span class="chip"><b>R</b> + <b>Python</b>, file hand-off</span>
+      <span class="chip"><b>~644k</b> CpGs (v1&nbsp;∩&nbsp;v2)</span>
+      <span class="chip"><b>814</b> train / <b>187</b> test slides</span>
+      <span class="chip">External test clinic: <b>hospital8</b></span>
+      <span class="chip"><b>5-fold</b> patient-stratified CV</span>
+      <span class="chip">2 tasks: <b>diagnosis</b> + <b>therapeutic group</b></span>
+    </div>
+  </header>
+
+  <div class="legend" id="legend">
+    <span class="legend-label">Filter by type</span>
+    <button class="filter" data-kind="r"      aria-pressed="false"><span class="swatch" style="background:var(--r-bg);border-color:var(--r)"></span>R step</button>
+    <button class="filter" data-kind="py"     aria-pressed="false"><span class="swatch" style="background:var(--py-bg);border-color:var(--py)"></span>Python step</button>
+    <button class="filter" data-kind="data"   aria-pressed="false"><span class="swatch" style="background:var(--dt-bg);border-color:var(--dt)"></span>Data artefact</button>
+    <button class="filter" data-kind="target" aria-pressed="false"><span class="swatch" style="background:var(--tg-bg);border-color:var(--tg)"></span>Prediction target</button>
+    <button class="filter" data-kind="test"   aria-pressed="false"><span class="swatch" style="background:var(--ts-bg);border-color:var(--ts)"></span>External test</button>
+    <button class="reset" id="reset" hidden>clear filters</button>
+  </div>
+
+  <div class="grid">
+    <div class="diagram-scroll">
+      <div class="diagram" id="diagram">
+        <svg class="edges" id="edges" aria-hidden="true"></svg>
+        <div class="lanes" id="lanes"></div>
+      </div>
+    </div>
+
+    <aside class="side">
+      <div class="panel" id="panel" aria-live="polite">
+        <!-- filled by JS -->
+      </div>
+      <div class="panel runorder">
+        <h3>End-to-end run order</h3>
+        <ol class="steps" id="steps"></ol>
+      </div>
+    </aside>
+  </div>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- node model -------------------------------------------------------
+  const LANES = [
+    "Raw data",
+    "Preprocessing  ·  R + Python",
+    "Shared hand-off",
+    "Feature engineering",
+    "Feature tables",
+    "Modelling  ·  5-fold patient-stratified CV",
+    "External evaluation & model comparison",
+    "Prediction targets",
+    "Selected-CpG interpretation",
+    "Cohort description",
+    "Post-hoc analysis & reporting",
+  ];
+
+  const NODES = [
+    // lane 0
+    { id:"idat", lane:0, kind:"input", tag:"input · IDAT", label:"Illumina IDATs", sub:"EPIC v1 + v2 arrays",
+      desc:"Raw two-channel intensity files straight off the scanner — one pair per sample, across two array generations.",
+      reads:["idat_v1_dir  /mnt/data/SCPMethyl/EPICv1","idat_v2_dir  /mnt/data/SCPMethyl/EPICv2"] },
+    { id:"meta", lane:0, kind:"input", tag:"input · meta", label:"Sample sheet + clinical", sub:"diagnosis · therapeutic group · clinic",
+      desc:"Per-sample clinical annotation and the sentrix↔sample mapping. Defines both targets (groupedPrimaryDiagnosisPatho, therapeutic_group) and which clinic each sample belongs to.",
+      reads:["meta.csv","hospital_mapping.json","methylation_samples_total.csv"] },
+
+    // lane 1
+    { id:"sesame", lane:1, kind:"r", tag:"R · process_idat.R", label:"sesame::openSesame", sub:"beta values, prep = QCDPB",
+      desc:"Reads raw IDATs per slide and computes beta values with sesame's QCDPB preprocessing, writing per-batch CSVs by array version. Rows are genome coordinates, not probe IDs — that is what lets the two array generations be joined later.",
+      scripts:["R/preprocessing/process_idat.R"], reads:["idat_v1_dir","idat_v2_dir"], writes:["epic_v1_dir/*.csv","epic_v2_dir/*.csv"] },
+    { id:"qc", lane:1, kind:"r", tag:"R · quality_control.R", label:"Quality control", sub:"per-probe detection rate",
+      desc:"Computes per-probe detection-rate statistics used to screen low-quality probes (the 0.9 threshold applied when the per-platform betas are combined).",
+      scripts:["R/preprocessing/quality_control.R"], writes:["epicv1_detectionrate.csv","epicv2_detectionrate.csv"] },
+    { id:"split", lane:1, kind:"py", tag:"PY · preprocessing", label:"Combine + train / test split", sub:"v1 ∩ v2 · hospital8 held out",
+      desc:"Cleans the sample sheet, joins meta with the sentrix mapping, combines the per-platform betas (detection rate ≥ 0.9, then an inner join of v1 and v2 on genome coordinate → ~644k CpGs) and writes the train/test beta splits. The hospital8 clinic is held out here, in full, as the external test set.",
+      scripts:["python -m python.preprocessing"], reads:["methylation_samples_total.csv","meta.csv","epic_v1_dir/*.csv","epic_v2_dir/*.csv"], writes:["methylation_samples_cleaned.csv","betas_v1.csv","betas_v2.csv","betas_combined.csv","betas_train.csv","betas_test.csv"] },
+    { id:"impute", lane:1, kind:"r", tag:"R · impute_betas.R", label:"methyLImp2 imputation", sub:"fills missing betas",
+      desc:"Runs methyLImp2 imputation on the Python-produced train/test splits so downstream models never see NaNs.",
+      scripts:["R/preprocessing/impute_betas.R"], reads:["betas_train.csv","betas_test.csv"], writes:["betas_imputed_train.csv","betas_imputed_test.csv"] },
+    { id:"chromhmm", lane:1, kind:"r", tag:"R · chrom_hmm_anno.R", label:"ChromHMM annotation", sub:"one-off reference curation",
+      desc:"Independent of the sample pipeline: overlaps both EPIC manifests with the Roadmap E059 (primary foreskin melanocytes) 15-state ChromHMM segmentation, producing the CpG → state lookup behind the chrom_hmm_* filters and the ChromHMM reducer. Rerun only when a manifest or the segmentation changes.",
+      scripts:["R/preprocessing/chrom_hmm_anno.R"], reads:["manifest_v1","manifest_v2","chrom_hmm_segments (E059, hg38-lifted)"], writes:["chrom_hmm (v1)","chrom_hmm_v2"] },
+
+    // lane 2
+    { id:"betas", lane:2, kind:"data", tag:"data · β-matrix", label:"Imputed beta matrix", sub:"~644k CpGs · 814 / 187 slides",
+      desc:"The shared hand-off artefact: rows = genome coordinates surviving the v1 ∩ v2 join, columns = slides, split into train (814) and external test (187). Everything downstream reads from here — R and Python exchange this file rather than coupling at runtime.",
+      reads:["betas_imputed_train.csv","betas_imputed_test.csv"] },
+
+    // lane 3
+    { id:"cpg_filter", lane:3, kind:"py", tag:"PY · filters.py", label:"CpG filter", sub:"IQR · variance · Boruta · elasticnet · DM · panel · ChromHMM",
+      desc:"Pre-selects a manageable CpG subset from the ~644k before reduction. Filters come from the shared registry in ml/_registries.py: iqr, variance, boruta, lasso, elasticnet, differential_methylation, panel_promoters, and chrom_hmm_{E13E14, E6E7, E1E2}.",
+      scripts:["python/ml/features/cpg.py","python/ml/filters.py","python/ml/_registries.py"] },
+    { id:"cpg_reduce", lane:3, kind:"py", tag:"PY · reducers.py", label:"CpG reducer", sub:"none · PCA · PLS · AE / VAE · ChromHMM",
+      desc:"Optionally compresses the filtered CpGs into a dense feature block via a reducer from the registry: none, chrom_hmm (state-wise mean), pca100/200/300, pls20/30, ae, ae_vae.",
+      scripts:["python/ml/reducers.py","python/ml/_registries.py"] },
+    { id:"horvath", lane:3, kind:"r", tag:"R · horvath_clock.R + horvath_eaa.R", label:"Horvath clock → EAA", sub:"leakage-safe · per fold & task",
+      desc:"horvath_clock.R computes the skinHorvath epigenetic age per array version. horvath_eaa.R then derives epigenetic age acceleration as the residual of resid(lm(skinHorvath ~ age)): eaa_base fit on training rows only (used for the final model and the test set) and eaa_oof fit per CV fold, so a sample's acceleration never comes from a line fit on itself. One file per task.",
+      scripts:["R/analysis/horvath_clock.R","R/analysis/horvath_eaa.R"], reads:["betas_v1.csv","betas_v2.csv","cv_folds__{task}.csv"], writes:["horvath_ages_v1.csv","horvath_ages_v2.csv","horvath_eaa__{task}.csv"] },
+    { id:"episcore", lane:3, kind:"r", tag:"R · deconvolution.R", label:"EpiSCORE deconvolution", sub:"9 cell-type fractions",
+      desc:"Estimates cell-type fractions via EpiSCORE (broad + immune references): melanocyte, keratinocyte, stromal, endothelial, Th, T_reg, T_CD8, other lymphoid, myeloid.",
+      scripts:["R/analysis/deconvolution.R"], reads:["episcore_ref_broad.rds","episcore_ref_immune.rds"], writes:["results/deconvolution/episcore.csv"] },
+    { id:"cnv", lane:3, kind:"r", tag:"R · cnv_burden.R (+ _per_fold)", label:"CNV burden", sub:"fga · total burden",
+      desc:"Sesame-based copy-number burden versus a nevus reference. The per-fold variant is classification-only — its sole purpose is keeping a validation nevus out of its own reference, and the ordinal task (IM/NIM) has no nevi at all.",
+      scripts:["R/analysis/cnv_burden.R","R/analysis/cnv_burden_per_fold.R"], reads:["cv_folds__classification.csv"], writes:["cnv_burden_results.csv","cnv_burden_results_fold{k}.csv"] },
+    { id:"export_folds", lane:3, kind:"py", tag:"PY · export_folds", label:"Fold export", sub:"cv_folds__{task}.csv",
+      desc:"Writes the 5-fold patient-stratified assignment (StratifiedGroupKFold, one file per task) so the R fold-aware marker steps — per-fold CNV and out-of-fold Horvath EAA — match Python's exact splits. A cross-language handshake.",
+      scripts:["python -m python.ml.export_folds --task {task}"], writes:["results/classifier/cv/cv_folds__{task}.csv"] },
+
+    // lane 4
+    { id:"cpg_tab", lane:4, kind:"data", tag:"data · CpG features", label:"CpG features", sub:"filtered (± reduced)",
+      desc:"Output of the filter → reducer pipeline: the selected CpGs, optionally compressed, fed to the CpG-based model. The pre-reduction selection is what ml.export_cpgs later hands to the R interpretation analyses." },
+    { id:"markers_tab", lane:4, kind:"data", tag:"data · markers", label:"12 marker features", sub:"1 EAA + 9 fractions + 2 CNV",
+      desc:"Twelve CpG-derived markers assembled by features/markers.py — the single definition of the marker set (ml.correlation reuses these loaders). prepare_fold swaps in the per-fold CNV file and the out-of-fold EAA residual so validation rows never see their own reference.",
+      scripts:["python/ml/features/markers.py"], reads:["horvath_eaa__{task}.csv","results/deconvolution/episcore.csv","cnv_burden_results_fold{k}.csv"] },
+
+    // lane 5
+    { id:"cpg_model", lane:5, kind:"py", tag:"PY · benchmark", label:"CpG-based model", sub:"CV · --features cpg",
+      desc:"Cross-validated sweep over (filter × reducer × model) on the CpG features. The CV body in cv.py is task-agnostic; everything task-specific lives on the Task object in tasks.py.",
+      scripts:["python -m python.ml.benchmark --task {task} --features cpg"], writes:["results/classifier/cv/cv_results__*.csv"] },
+    { id:"marker_model", lane:5, kind:"py", tag:"PY · benchmark", label:"Marker-based model", sub:"CV · --features markers",
+      desc:"Cross-validated model over the 12 marker features; runs for both the diagnosis and the therapeutic-group task. Scale-sensitive estimators are wrapped in a StandardScaler pipeline since EAA, CNV burden and cell fractions live on very different scales.",
+      scripts:["python -m python.ml.benchmark --task {task} --features markers"] },
+    { id:"preds", lane:5, kind:"data", tag:"data · predictions", label:"Per-sample predictions", sub:"out-of-fold + external test",
+      desc:"ml.oof writes one leakage-safe prediction CSV per base learner under the same fold structure; the schema follows the task (prob_* columns for classification, a single prediction column for the ordinal task). Consumed by the stacked feature source and by ml.complementarity.",
+      scripts:["python -m python.ml.oof"], writes:["results/classifier/cv/oof_predictions__*.csv","results/classifier/predictions/test_predictions__*.csv"] },
+    { id:"stack", lane:5, kind:"py", tag:"PY · benchmark", label:"Stacked model", sub:"CpG preds ⨁ marker preds",
+      desc:"Two-base-learner stacking: the meta-features are the CpG model's prediction columns joined with the marker model's own prediction columns (2 × n_classes, both on the same probability scale). Both prediction sets are already leakage-safe by construction, so no per-fold swap is applied; the schema is auto-detected, so stacking works for both tasks.",
+      scripts:["python -m python.ml.benchmark --features stacked --cpg-oof … --marker-oof …"] },
+
+    // lane 6
+    { id:"evaluate", lane:6, kind:"py", tag:"PY · train → evaluate", label:"External evaluation", sub:"bootstrap CIs · ROC / confusion",
+      desc:"train.py fits one (filter, reducer, model) pipeline on the full training set and pickles the artefact; evaluate.py applies it to the external test split, branching on the task stamped by train.py and emitting the task's headline metrics (AUROC / balanced accuracy / macro-F1, or macro-MAE / QWK / Spearman ρ) with bootstrap CIs and task-appropriate plots.",
+      scripts:["python -m python.ml.train","python -m python.ml.evaluate"], writes:["results/classifier/models/model__*.pkl","results/classifier/predictions/test_predictions__*.csv"] },
+    { id:"holdout", lane:6, kind:"test", tag:"test · hospital8", label:"External test clinic", sub:"never seen in training or CV",
+      desc:"All samples from config.test_clinic (currently hospital8) are withheld from cross-validation and used only for final evaluation — 187 of the 1001 slides.",
+      reads:["test_clinic: hospital8"] },
+    { id:"compare", lane:6, kind:"py", tag:"PY · compare", label:"Model comparison", sub:"paired tests · Holm",
+      desc:"Answers what overlapping per-model CIs cannot: do CpG-based, marker-based and stacked actually differ? Predictions are paired by slideId on the same external test set — paired difference bootstrap on macro-OvR AUROC plus DeLong per one-vs-rest class (classification), or paired bootstrap on macro-MAE (ordinal), both clustered on patient — with Holm-Bonferroni correction within each metric family. Tests live in ml.stats.",
+      scripts:["python -m python.ml.compare --task {task}","python/ml/stats.py"], writes:["results/classifier/comparison/comparison__*.csv"] },
+
+    // lane 7
+    { id:"diag", lane:7, kind:"target", tag:"target · classification", label:"3-class diagnosis", sub:"IM / NIM / NV",
+      desc:"The primary classification target: invasive melanoma, non-invasive melanoma, or benign nevus. Headline metrics: macro-OvR AUROC, balanced accuracy, macro-F1." },
+    { id:"ordinal", lane:7, kind:"target", tag:"target · ordinal", label:"Therapeutic group", sub:"ordered groups 0–5",
+      desc:"Ordinal-regression target: AJCC stages collapsed into therapy-relevant groups (0, IA, IB, IIA, IIB/IIC → 4, IIIA/IIIB/IIIC → 5) by the canonical mapping in ml/ajcc.py. Headline metrics: macro-averaged MAE, quadratic-weighted κ, Spearman ρ.",
+      scripts:["python/ml/ajcc.py"] },
+
+    // lane 8
+    { id:"export_cpgs", lane:8, kind:"py", tag:"PY · export_cpgs", label:"Selected-CpG export", sub:"pickle → CSV bridge",
+      desc:"The R interpretation analyses need the CpG list a model actually selected, but train.py's artefacts are joblib pickles. This sweeps every raw-CpG checkpoint (task × filter × reducer × model) and writes one CSV per artefact, so a selection is always traceable to one checkpoint. Which export the R scripts read is set by paths.selected_cpgs_classification / _ordinal.",
+      scripts:["python -m python.ml.export_cpgs"], writes:["results/classifier/models/selected_cpgs__*.csv"] },
+    { id:"dmr", lane:8, kind:"r", tag:"R · dmr.R", label:"DMR analysis", sub:"DMRcate · classification only",
+      desc:"Do the classifier's CpGs sit in regionally differential biology? DMRcate over the three diagnosis contrasts on the whole cohort (train+test — descriptive, so holding samples back would only cost power; the selection it is intersected with is still training-split only), filtered to significant (HMFDR < thresholds.dmr_fdr) and high-effect (|Δβ| ≥ thresholds.dmr_delta) regions, then intersected with the selected CpGs. Classification-only — the ordered therapeutic groups have no pairwise-contrast counterpart. Compute-only (~20 min, ~20 GB); plots.R draws the figures from its tables.",
+      scripts:["R/analysis/dmr.R"], reads:["betas_imputed_train.csv","betas_imputed_test.csv","selected_cpgs_classification","cpg_position_mapping"], writes:["results/dmr/dmr_summary.csv","dmr_regions.csv","selected_cpgs_in_dmrs.csv","selected_cpgs_betas.csv"] },
+    { id:"go", lane:8, kind:"r", tag:"R · go_enrichment.R", label:"GO enrichment", sub:"gometh · both tasks",
+      desc:"Nearest-gene annotation (ChIPseeker, hg38, TSS −1500…+200) plus missMethyl::gometh against the array background, which corrects the CpGs-per-gene bias. Runs both tasks in one go, each against its own selection.",
+      scripts:["R/analysis/go_enrichment.R"], reads:["selected_cpgs_{task}","cpg_position_mapping","betas_imputed_train.csv (index only)"], writes:["results/go/<task>/go_results.csv","selected_gene_annotation.csv","plots/go/<task>/gometh_bias.pdf"] },
+
+    // lane 9
+    { id:"cohort", lane:9, kind:"r", tag:"R · cohort_heatmap.R", label:"Cohort overview slice", sub:"top 500 diagnosis-associated CpGs",
+      desc:"Describes the cohort rather than a model: a per-CpG Kruskal-Wallis ranking against the three diagnoses, keeping the top 500. Ranked on the training split so the external test clinic is never selected on its own labels, but sliced over the whole cohort — that is what the figure shows. Ranking by total variance instead is not viable here: ~2.4% of CpGs carry a systematic EPICv1/EPICv2 offset that inflates variance, and the heatmap then clusters by array rather than by biology. Compute-only; plots.R draws the heatmap and ml.embedding reuses the slice.",
+      scripts:["R/analysis/cohort_heatmap.R"], reads:["betas_imputed_train.csv","betas_imputed_test.csv","meta.csv"], writes:["results/cohort/classification_cpgs_betas.csv","classification_cpgs_stats.csv"] },
+    { id:"nim_spectrum", lane:9, kind:"r", tag:"R · nim_spectrum.R", label:"NIM on the NV → IM axis", sub:"10k CpGs per direction",
+      desc:"Where does NIM sit between benign nevus and invasive melanoma? The CpGs whose mean β shifts most from NV to IM define a lost- and a gained-methylation set, and each lesion becomes its mean β over each set. NIM never enters the selection, so NV vs NIM and NIM vs IM are out-of-sample (Wilcoxon rank-sum, Holm); NV vs IM is deliberately untested, since the axis maximises exactly that difference. Fitted over the whole cohort — descriptive, and the groups it is fitted on are not the ones tested. Compute-only; plots.R draws the two violin panels and annotates them with the adjusted p-values from the persisted test table.",
+      scripts:["R/analysis/nim_spectrum.R"], reads:["betas_imputed_train.csv","betas_imputed_test.csv","meta.csv"], writes:["results/nim_spectrum/axis_mean_betas.csv","axis_pairwise_tests.csv"] },
+    { id:"embedding", lane:9, kind:"py", tag:"PY · embedding", label:"t-SNE embedding", sub:"both tasks · whole cohort",
+      desc:"The scatter counterpart of the cohort heatmap: t-SNE over the same 500 CpGs and the same samples, read straight from the slice cohort_heatmap.R persisted, one panel per task's labelling. Train and test samples are distinguished by marker shape. Runs on the whole cohort, not the training split, because the figure describes the cohort; perplexity is clamped to (n − 1) / 3.",
+      scripts:["python -m python.ml.embedding [--task …] [--perplexity P]"], reads:["results/cohort/classification_cpgs_betas.csv"], writes:["results/cohort/tsne__{task}.csv","plots/cohort/tsne__{task}.pdf"] },
+
+    // lane 10
+    { id:"complementarity", lane:10, kind:"py", tag:"PY · complementarity", label:"Complementarity", sub:"where the base learners differ",
+      desc:"Sample-level diff of the two base learners' prediction files: an exact-match 2×2 (CpG correct?) × (markers correct?) contingency table plus per-class rescue rates for the diagnosis task, and a distance-to-truth comparison (who lands strictly closer) for the ordinal one. Purely descriptive — whether they differ is settled upstream by ml.compare; this shows where.",
+      scripts:["python -m python.ml.complementarity"], writes:["results/classifier/complementarity/"] },
+    { id:"importance", lane:10, kind:"py", tag:"PY · importance", label:"Feature importance", sub:"permutation · per feature + grouped",
+      desc:"Permutation importance on the external test split for the low-dimensional feature sources (markers, stacked), task-aware. Also reported grouped by semantic block — the stacked model's two base-learner views, the marker model's three modalities — because a block's probability columns sum to 1 and shuffling them one at a time understates the block. Raw-CpG models are deliberately not handled.",
+      scripts:["python -m python.ml.importance"], writes:["results/classifier/importance/"] },
+    { id:"correlation", lane:10, kind:"py", tag:"PY · correlation", label:"Marker ↔ target correlation", sub:"both tasks · training split",
+      desc:"How well each marker tracks the target on its own, without a model, adapted to the target's measurement level: Spearman ρ + Kruskal-Wallis + conditional pairwise Mann-Whitney U and a signed-ρ heatmap for the ordinal task; for the nominal diagnosis, Spearman is dropped and the summary is a directional pairwise Mann-Whitney effect-size heatmap. Holm-corrected across markers, and within each marker for the post-hoc. Also the home of the diagnosis-grouped marker boxplots.",
+      scripts:["python -m python.ml.correlation [--task …]","python/ml/stats.py"], writes:["results/correlation/<task>/","plots/correlation/<task>/"] },
+    { id:"report", lane:10, kind:"r", tag:"R · plots.R", label:"R figures", sub:"drawn from persisted tables",
+      desc:"Every R figure, drawn only from tables written earlier: QC detection histogram, deconvolution stacked bar, the Horvath chronological-vs-predicted age scatter, the cohort heatmap (every sample over the diagnosis-associated CpGs, blocked IM | NIM | NV and annotated with diagnosis, therapeutic group, age, hospital and array generation), the NV → IM axis violins, the three DMR figures (count bar, volcano, β heatmap) and the per-task GO bar chart. Each section skips itself with a message if its compute step hasn't run, so it is safe and cheap to re-run at any point.",
+      scripts:["R/report/plots.R","R/lib/plot_utils.R"] },
+    { id:"panels", lane:10, kind:"py", tag:"PY · panels", label:"Manuscript panels", sub:"composite the plot PDFs",
+      desc:"Composites the individual plot PDFs into the multi-panel manuscript figures and stamps the bold lower-case panel letters. Every plot is already drawn at its final on-page width via the figure block of config.yaml (mirrored by R/lib/plot_utils.R), so panels are placed at scale 1.0 — an oversized figure warns rather than being rescaled.",
+      scripts:["python -m python.panels [--figure <name>]"], writes:["plots/manuscript/"] },
+  ];
+
+  const EDGES = [
+    ["idat","sesame"], ["meta","split",true],
+    ["sesame","qc"], ["qc","split"], ["split","impute"], ["impute","betas"],
+    ["betas","cpg_filter"], ["betas","horvath"], ["betas","episcore"], ["betas","cnv"],
+    ["betas","export_folds",true],
+    ["chromhmm","cpg_filter",true],
+    ["cpg_filter","cpg_reduce"], ["cpg_reduce","cpg_tab"],
+    ["export_folds","cnv",true], ["export_folds","horvath",true],
+    ["horvath","markers_tab"], ["episcore","markers_tab"], ["cnv","markers_tab"],
+    ["cpg_tab","cpg_model"], ["markers_tab","marker_model"],
+    ["cpg_model","preds"], ["marker_model","preds"], ["preds","stack","meta-features"],
+    ["cpg_model","evaluate"], ["marker_model","evaluate"], ["stack","evaluate"],
+    ["holdout","evaluate",true], ["evaluate","compare","paired by slideId"],
+    ["evaluate","diag"], ["evaluate","ordinal"],
+    ["evaluate","export_cpgs",true], ["export_cpgs","dmr"], ["export_cpgs","go"],
+    ["preds","complementarity",true], ["evaluate","importance",true],
+    ["markers_tab","correlation",true],
+    ["betas","cohort",true], ["cohort","embedding","500-CpG slice"],
+    ["betas","nim_spectrum",true],
+    ["dmr","report",true], ["go","report",true], ["cohort","report",true],
+    ["nim_spectrum","report",true],
+    ["report","panels"], ["correlation","panels",true], ["embedding","panels",true],
+  ].map(function (e) {
+    var label = (typeof e[2] === "string") ? e[2] : null;
+    var dash = e[2] === true;
+    return { f: e[0], t: e[1], label: label, dash: dash };
+  });
+
+  const STEPS = [
+    { cmd:"R/preprocessing/chrom_hmm_anno.R", note:"one-off: ChromHMM state lookup", nodes:["chromhmm"] },
+    { cmd:"R/preprocessing/process_idat.R", note:"IDAT → beta CSVs", nodes:["sesame"] },
+    { cmd:"R/preprocessing/quality_control.R", note:"detection-rate stats", nodes:["qc"] },
+    { cmd:"python -m python.preprocessing", note:"combine platforms + train/test split", nodes:["split"] },
+    { cmd:"R/preprocessing/impute_betas.R", note:"methyLImp2 imputation", nodes:["impute","betas"] },
+    { cmd:"python -m python.ml.export_folds", note:"writes cv_folds__{task}.csv", nodes:["export_folds"] },
+    { cmd:"R/analysis/{horvath_clock, horvath_eaa, deconvolution, cnv_burden, cnv_burden_per_fold}.R", note:"marker computation (R)", nodes:["horvath","episcore","cnv","markers_tab"] },
+    { cmd:"R/analysis/cohort_heatmap.R", note:"diagnosis-associated CpGs for the cohort figure (needs only the imputed betas)", nodes:["cohort"] },
+    { cmd:"R/analysis/nim_spectrum.R", note:"place NIM on the NV → IM methylation axis (needs only the imputed betas)", nodes:["nim_spectrum"] },
+    { cmd:"python -m python.ml.benchmark", note:"CV sweeps (CpG + markers, per task)", nodes:["cpg_filter","cpg_reduce","cpg_model","marker_model"] },
+    { cmd:"python -m python.ml.oof", note:"per-sample predictions for both base learners", nodes:["preds"] },
+    { cmd:"benchmark --features stacked", note:"stacked model on the two prediction sets", nodes:["stack"] },
+    { cmd:"python -m python.ml.train → evaluate", note:"fit + external-test evaluation", nodes:["evaluate","holdout","diag","ordinal"] },
+    { cmd:"python -m python.ml.compare", note:"pairwise model significance, per task", nodes:["compare"] },
+    { cmd:"ml.complementarity · ml.importance", note:"descriptive post-hoc on predictions + artefacts", nodes:["complementarity","importance"] },
+    { cmd:"R/report/plots.R", note:"R figures available so far (QC, stacked bar, age scatter)", nodes:["report"] },
+    { cmd:"python -m python.ml.correlation", note:"marker-vs-target stats + boxplots (both tasks)", nodes:["correlation"] },
+    { cmd:"python -m python.ml.embedding", note:"t-SNE of the cohort heatmap's CpGs (both tasks)", nodes:["embedding","cohort"] },
+    { cmd:"python -m python.ml.export_cpgs", note:"each CpG checkpoint's selection → one CSV", nodes:["export_cpgs"] },
+    { cmd:"R/analysis/{dmr,go_enrichment}.R", note:"interpret the designated selections (compute)", nodes:["dmr","go"] },
+    { cmd:"R/report/plots.R", note:"(re)draw every R figure, now incl. DMR/GO", nodes:["report","dmr","go"] },
+    { cmd:"python -m python.panels", note:"composite the manuscript figures", nodes:["panels"] },
+  ];
+
+  const KIND_LABEL = { input:"input", r:"R step", py:"Python step", data:"data artefact", target:"prediction target", test:"external test" };
+  const KIND_VAR = { input:"--in", r:"--r", py:"--py", data:"--dt", target:"--tg", test:"--ts" };
+
+  // ---- build DOM --------------------------------------------------------
+  const lanesEl = document.getElementById("lanes");
+  const nodeById = {};
+  const laneOf = {};
+  NODES.forEach(function (n) { laneOf[n.id] = n.lane; });
+
+  LANES.forEach(function (name, i) {
+    const lane = document.createElement("div");
+    lane.className = "lane";
+    const label = document.createElement("div");
+    label.className = "lane-name";
+    label.textContent = name;
+    const row = document.createElement("div");
+    row.className = "lane-row";
+    NODES.filter(function (n) { return n.lane === i; }).forEach(function (n) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "node";
+      b.dataset.id = n.id;
+      b.dataset.kind = n.kind;
+      b.innerHTML =
+        '<span class="node-tag">' + n.tag + '</span>' +
+        '<span class="node-label">' + n.label + '</span>' +
+        '<span class="node-sub">' + n.sub + '</span>';
+      row.appendChild(b);
+      nodeById[n.id] = b;
+    });
+    lane.appendChild(label);
+    lane.appendChild(row);
+    lanesEl.appendChild(lane);
+  });
+
+  // ---- svg edges --------------------------------------------------------
+  const svg = document.getElementById("edges");
+  const diagram = document.getElementById("diagram");
+  const SVGNS = "http://www.w3.org/2000/svg";
+
+  // arrow marker
+  svg.innerHTML =
+    '<defs><marker id="arrow" viewBox="0 0 10 10" refX="8.5" refY="5" ' +
+    'markerWidth="7" markerHeight="7" orient="auto-start-reverse">' +
+    '<path d="M0,0 L10,5 L0,10 z" fill="context-stroke"></path></marker></defs>';
+
+  const edgePaths = [];
+  const edgeLabels = [];
+  EDGES.forEach(function (e) {
+    const p = document.createElementNS(SVGNS, "path");
+    p.setAttribute("class", "edge" + (e.dash ? " dashed" : ""));
+    p.setAttribute("marker-end", "url(#arrow)");
+    svg.appendChild(p);
+    edgePaths.push(p);
+    if (e.label) {
+      const t = document.createElementNS(SVGNS, "text");
+      t.setAttribute("class", "edge-label");
+      t.setAttribute("text-anchor", "middle");
+      t.textContent = e.label;
+      svg.appendChild(t);
+      edgeLabels.push({ el: t, edge: e });
+    }
+  });
+
+  function center(id) {
+    const el = nodeById[id];
+    const r = el.getBoundingClientRect();
+    const c = diagram.getBoundingClientRect();
+    return {
+      left: r.left - c.left, right: r.right - c.left,
+      top: r.top - c.top, bottom: r.bottom - c.top,
+      cx: r.left - c.left + r.width / 2,
+      cy: r.top - c.top + r.height / 2,
+    };
+  }
+
+  function layout() {
+    const c = diagram.getBoundingClientRect();
+    svg.setAttribute("width", c.width);
+    svg.setAttribute("height", c.height);
+    EDGES.forEach(function (e, i) {
+      const a = center(e.f), b = center(e.t);
+      const sameLane = laneOf[e.f] === laneOf[e.t];
+      let d, mx, my;
+      if (sameLane) {
+        // horizontal connector
+        const leftToRight = b.cx >= a.cx;
+        const x1 = leftToRight ? a.right : a.left;
+        const x2 = leftToRight ? b.left : b.right;
+        const y1 = a.cy, y2 = b.cy;
+        const dx = x2 - x1;
+        d = "M" + x1 + "," + y1 + " C" + (x1 + dx * 0.45) + "," + y1 + " " +
+            (x2 - dx * 0.45) + "," + y2 + " " + x2 + "," + y2;
+        mx = (x1 + x2) / 2; my = (y1 + y2) / 2 - 7;
+      } else {
+        // vertical connector (target always in a lower lane)
+        const x1 = a.cx, y1 = a.bottom, x2 = b.cx, y2 = b.top;
+        const dy = y2 - y1;
+        d = "M" + x1 + "," + y1 + " C" + x1 + "," + (y1 + dy * 0.5) + " " +
+            x2 + "," + (y2 - dy * 0.5) + " " + x2 + "," + y2;
+        mx = (x1 + x2) / 2; my = (y1 + y2) / 2;
+      }
+      edgePaths[i].setAttribute("d", d);
+    });
+    edgeLabels.forEach(function (o) {
+      const a = center(o.edge.f), b = center(o.edge.t);
+      const sameLane = laneOf[o.edge.f] === laneOf[o.edge.t];
+      if (sameLane) {
+        o.el.setAttribute("x", (a.right + b.left) / 2);
+        o.el.setAttribute("y", a.cy - 7);
+      } else {
+        o.el.setAttribute("x", (a.cx + b.cx) / 2 + 6);
+        o.el.setAttribute("y", (a.bottom + b.top) / 2);
+      }
+    });
+  }
+
+  // ---- interaction ------------------------------------------------------
+  let selected = null;
+  const filters = new Set();
+  const resetBtn = document.getElementById("reset");
+
+  function applyFilters() {
+    const active = filters.size > 0;
+    NODES.forEach(function (n) {
+      nodeById[n.id].classList.toggle("hidden-kind", active && !filters.has(n.kind));
+    });
+    document.querySelectorAll(".filter").forEach(function (f) {
+      const on = filters.has(f.dataset.kind);
+      f.setAttribute("aria-pressed", on ? "true" : "false");
+      f.classList.toggle("off", active && !on);
+    });
+    resetBtn.hidden = !active;
+  }
+
+  function clearHighlight() {
+    NODES.forEach(function (n) { nodeById[n.id].classList.remove("faded", "active"); });
+    edgePaths.forEach(function (p) { p.classList.remove("edge-on", "edge-off"); });
+    edgeLabels.forEach(function (o) { o.el.classList.remove("show"); });
+  }
+
+  function highlight(ids) {
+    const primary = new Set(ids);
+    const keep = new Set(ids);
+    const edgeOn = new Set();
+    EDGES.forEach(function (e, i) {
+      if (primary.has(e.f) || primary.has(e.t)) { edgeOn.add(i); keep.add(e.f); keep.add(e.t); }
+    });
+    NODES.forEach(function (n) {
+      const el = nodeById[n.id];
+      el.classList.toggle("active", primary.has(n.id));
+      el.classList.toggle("faded", !keep.has(n.id));
+    });
+    edgePaths.forEach(function (p, i) {
+      p.classList.toggle("edge-on", edgeOn.has(i));
+      p.classList.toggle("edge-off", !edgeOn.has(i));
+    });
+    edgeLabels.forEach(function (o, i) {
+      const idx = EDGES.indexOf(o.edge);
+      o.el.classList.toggle("show", edgeOn.has(idx));
+    });
+  }
+
+  function restore() {
+    if (selected) highlight([selected]);
+    else clearHighlight();
+  }
+
+  function esc(s) { return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+
+  function listBlock(title, items, cls) {
+    if (!items || !items.length) return "";
+    return '<div class="p-block"><h4>' + title + '</h4><ul class="p-list ' + cls + '">' +
+      items.map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></div>";
+  }
+
+  const panel = document.getElementById("panel");
+
+  function overview() {
+    panel.innerHTML =
+      '<p class="kicker">How to read this map</p>' +
+      '<p class="p-title">Two languages, one file trail</p>' +
+      '<p class="p-desc">Each box is a step or an artefact. Arrows are data flowing on disk — solid where a step produces the next one, dashed for configuration, folds and the external test set.</p>' +
+      '<div class="p-block"><h4>Try</h4><ul class="p-list">' +
+        '<li>Hover a box to trace its neighbours</li>' +
+        '<li>Click a box to pin its scripts &amp; files</li>' +
+        '<li>Use the legend to filter by type</li>' +
+        '<li>Hover a run-order step to locate it</li>' +
+      '</ul></div>';
+  }
+
+  function showDetail(id) {
+    const n = NODES.find(function (x) { return x.id === id; });
+    if (!n) return;
+    const varName = KIND_VAR[n.kind];
+    const badge = '<span class="p-badge" style="color:var(' + varName + ');border-color:var(' + varName + ')">' +
+      esc(KIND_LABEL[n.kind]) + '</span>';
+    panel.innerHTML =
+      '<p class="kicker">' + esc(n.tag) + '</p>' +
+      badge +
+      '<p class="p-title">' + esc(n.label) + '</p>' +
+      '<p class="p-desc">' + esc(n.desc) + '</p>' +
+      listBlock("Runs", n.scripts, "cmd") +
+      listBlock("Reads", n.reads, "reads") +
+      listBlock("Writes", n.writes, "writes");
+  }
+
+  // node events
+  NODES.forEach(function (n) {
+    const el = nodeById[n.id];
+    el.addEventListener("mouseenter", function () { highlight([n.id]); });
+    el.addEventListener("mouseleave", restore);
+    el.addEventListener("focus", function () { highlight([n.id]); showDetail(n.id); });
+    el.addEventListener("blur", restore);
+    el.addEventListener("click", function () {
+      if (selected === n.id) { selected = null; overview(); }
+      else { selected = n.id; showDetail(n.id); }
+      restore();
+    });
+  });
+
+  // filters
+  document.querySelectorAll(".filter").forEach(function (f) {
+    f.addEventListener("click", function () {
+      const k = f.dataset.kind;
+      if (filters.has(k)) filters.delete(k); else filters.add(k);
+      applyFilters();
+    });
+  });
+  resetBtn.addEventListener("click", function () { filters.clear(); applyFilters(); });
+
+  // run order
+  const stepsEl = document.getElementById("steps");
+  STEPS.forEach(function (s) {
+    const li = document.createElement("li");
+    li.innerHTML = '<span><span class="step-cmd">' + esc(s.cmd) + '</span>' +
+      '<span class="step-note">' + esc(s.note) + '</span></span>';
+    li.addEventListener("mouseenter", function () { highlight(s.nodes); });
+    li.addEventListener("mouseleave", restore);
+    stepsEl.appendChild(li);
+  });
+
+  // ---- boot -------------------------------------------------------------
+  overview();
+  function relayout() { requestAnimationFrame(layout); }
+  relayout();
+  window.addEventListener("load", relayout);
+  window.addEventListener("resize", relayout);
+  if (window.ResizeObserver) new ResizeObserver(relayout).observe(diagram);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(relayout);
+})();
+</script>

@@ -1,0 +1,3 @@
+group,n_features,features,importance_mean,importance_std,baseline
+CpG view,6,cpg_prob_0;cpg_prob_1;cpg_prob_2;cpg_prob_3;cpg_prob_4;cpg_prob_5,0.759456714703425,0.14623656874595622,0.7575971177944862
+marker view,6,mrk_prob_0;mrk_prob_1;mrk_prob_2;mrk_prob_3;mrk_prob_4;mrk_prob_5,0.12550569131161235,0.06975751921241835,0.7575971177944862

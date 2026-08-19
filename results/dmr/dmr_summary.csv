@@ -1,0 +1,4 @@
+contrast,n_regions,n_significant,n_high_effect,n_array_cpgs,n_selected_cpgs,cpgs_in_dmr,selected_in_dmr
+IM_vs_NV,74927,74911,2267,644370,454,7206,185
+NIM_vs_NV,53871,53862,193,644370,454,504,21
+IM_vs_NIM,56479,56462,1146,644370,454,3617,92
